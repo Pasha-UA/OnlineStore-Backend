@@ -1,9 +1,27 @@
+using Microsoft.EntityFrameworkCore;
+using OnlineStore.Infrastructure.Data;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddCors(options =>
+    {
+        options.AddPolicy("AllowAngularDev",
+            builder =>
+            {
+                builder.WithOrigins("http://localhost:4200") // Angular dev server URL
+                       .AllowAnyMethod()
+                       .AllowAnyHeader();
+            });
+    });
+
+builder.Services.AddDbContext<OnlineStoreContext>(options =>
+            options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddControllers();
 
 var app = builder.Build();
 
@@ -15,6 +33,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowAngularDev"); // Apply the CORS policy
+app.UseAuthorization();
+app.MapControllers();
 
 var summaries = new[]
 {
@@ -23,7 +44,7 @@ var summaries = new[]
 
 app.MapGet("/weatherforecast", () =>
 {
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
+    var forecast = Enumerable.Range(1, 5).Select(index =>
         new WeatherForecast
         (
             DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
@@ -42,3 +63,4 @@ record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
     public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
 }
+
